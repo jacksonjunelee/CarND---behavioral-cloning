@@ -1,5 +1,7 @@
 import argparse
 import base64
+import json
+import pickle
 from datetime import datetime
 import os
 import shutil
@@ -11,11 +13,13 @@ import eventlet.wsgi
 from PIL import Image
 from flask import Flask
 from io import BytesIO
+from preprocess import preprocess, get_preprocess_dict
 
-from keras.models import load_model
+from keras.models import load_model, model_from_json
 import h5py
 from keras import __version__ as keras_version
 
+preprocess_dict = get_preprocess_dict()
 sio = socketio.Server()
 app = Flask(__name__)
 model = None
@@ -61,7 +65,8 @@ def telemetry(sid, data):
         imgString = data["image"]
         image = Image.open(BytesIO(base64.b64decode(imgString)))
         image_array = np.asarray(image)
-        steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
+        # steering_angle = float(model.predict(image_array[None, :, :, :], batch_size=1))
+        preprocessed_image_array = preprocess(image_array, preprocess_dict)
 
         throttle = controller.update(float(speed))
 
